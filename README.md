@@ -1,304 +1,145 @@
-# vite-plugin-vue3-auto-i18n
+# i18ncraft
 
-[![NPM version](https://img.shields.io/npm/v/vite-plugin-vue3-auto-i18n?color=a1b858&label=)](https://www.npmjs.com/package/vite-plugin-vue3-auto-i18n)
-[![License](https://img.shields.io/npm/l/vite-plugin-vue3-auto-i18n)](https://github.com/exwer/vite-plugin-vue3-auto-i18n/blob/main/LICENSE)
+[![NPM version](https://img.shields.io/npm/v/i18ncraft?color=a1b858&label=)](https://www.npmjs.com/package/i18ncraft)
+[![License](https://img.shields.io/npm/l/i18ncraft)](https://github.com/exwer/i18ncraft/blob/main/LICENSE)
 
-> ⚠️ **Beta Version**: This plugin is still in beta. Please report any issues you encounter.
+> 🚀 **i18ncraft** 是一个面向 Vue 3 项目的自动国际化批量转换 CLI 工具，支持高效扫描、转换 .vue 文件中的文本和属性，极大提升多语言开发效率。
 
-A Vite plugin that automatically imports Vue-i18n and replaces internationalized strings in Vue 3 Single File Components (SFC).
+---
 
-## ✨ Features
+## ✨ 功能特性
 
-- 🔄 **Auto Import**: Automatically imports `useI18n` and `$t` in Vue SFC files
-- 🎯 **Smart Matching**: Intelligently matches strings against your i18n configuration
-- 📝 **Script Transformation**: 
-  - Replaces `ref('xxx')` with `ref(t('xxx'))`
-  - Replaces `'xxx'` with `computed(() => t('xxx'))`
-  - Handles array/object literals: `['xxx', ...]` → `[t('xxx'), ...]`
-- 🎨 **Template Transformation**:
-  - Replaces plain text nodes: `xxx` → `{{ $t('xxx') }}`
-  - Replaces attribute values: `placeholder="xxx"` → `:placeholder="$t('xxx')"`
-  - Replaces dynamic bindings: `:placeholder="'xxx'"` → `:placeholder="$t('xxx')"`
-  - Replaces interpolations: `{{ 'xxx' }}` → `{{ $t('xxx') }}`
-- ⚙️ **Flexible Configuration**: Custom matchers, key generators, and exclusions
-- 🛡️ **Error Handling**: Friendly error messages for syntax errors
-- 🐛 **Debug Mode**: Detailed transformation logging
+- ⚡ **批量扫描/转换**：递归扫描指定目录下所有 .vue 文件，自动替换文本为 $t('key') 调用
+- 🧩 **配置驱动**：通过配置文件灵活指定扫描目录、输出目录、语言包等
+- 📝 **支持 script/template**：同时转换 <template> 和 <script setup> 区域的字符串
+- 🛡️ **健壮错误处理**：详细的语法错误、配置错误提示，便于定位问题
+- 🧪 **完善测试**：内置 Vitest 测试，确保转换逻辑可靠
+- 🐾 **保持目录结构**：输出目录结构与源目录一致，便于集成
 
-## 📦 Installation
+---
+
+## 📦 安装
 
 ```bash
-npm install -D vite-plugin-vue3-auto-i18n
+npm install -D i18ncraft
+# 或
+pnpm add -D i18ncraft
 ```
 
-## 🚀 Quick Start
+---
 
-### 1. Setup Vue-i18n
+## 🚀 快速上手
 
-First, ensure you have [vue-i18n](https://vue-i18n.intlify.dev/) installed and configured:
+### 1. 创建配置文件
 
-```typescript
-// main.ts
-import { createApp } from 'vue'
-import { createI18n } from 'vue-i18n'
-import App from './App.vue'
+在项目根目录新建 `i18ncraft.config.js`：
 
-const messages = {
-  en: {
-    message: {
-      hello: 'Hello World',
-      welcome: 'Welcome',
-      placeholder: 'Enter your name'
-    }
-  },
-  zh: {
-    message: {
-      hello: '你好世界',
-      welcome: '欢迎',
-      placeholder: '请输入您的姓名'
+```js
+module.exports = {
+  scanDir: 'src',           // 需要扫描的目录（必填）
+  outDir: 'i18n_out',       // 输出目录（必填）
+  exts: ['.vue'],           // 仅支持 .vue 文件
+  locale: {
+    en: {
+      message: { hello: 'Hello World', hi: 'Hi', nested: { greet: 'Greetings' } },
+      plain: 'plain',
+    },
+    zh: {
+      message: { hello: '你好，世界', hi: '嗨', nested: { greet: '问候' } },
+      plain: '纯文本',
     }
   }
 }
-
-const i18n = createI18n({
-  locale: 'zh',
-  fallbackLocale: 'en',
-  messages
-})
-
-createApp(App).use(i18n).mount('#app')
 ```
 
-### 2. Configure Vite Plugin
+### 2. 执行批量转换
 
-Add the plugin to your `vite.config.ts`:
-
-```typescript
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import autoI18n from 'vite-plugin-vue3-auto-i18n'
-
-export default defineConfig({
-  plugins: [
-    vue(),
-    autoI18n(messages.en) // Pass your locale messages
-  ]
-})
+```bash
+npx i18ncraft
 ```
 
-> **Important**: This plugin should be placed **after** the Vue plugin and any other Vue-related plugins.
+- 工具会自动读取配置文件，递归扫描 `scanDir` 下所有 .vue 文件，转换后输出到 `outDir`，保持原有目录结构。
 
-### 3. Write Your Code
+---
 
-Write your Vue components as usual:
+## ⚙️ 配置说明
 
-```vue
-<script setup lang="ts">
-import { ref } from 'vue'
+| 字段      | 类型      | 说明                       | 必填 |
+|-----------|-----------|----------------------------|------|
+| scanDir   | string    | 需要扫描的目录             | 是   |
+| outDir    | string    | 输出目录                   | 是   |
+| exts      | string[]  | 文件扩展名，仅支持['.vue'] | 是   |
+| locale    | object    | 语言包对象                 | 是   |
 
-const title = ref('Hello World')
-const options = ['Welcome', 'Hello World']
-</script>
+---
 
-<template>
-  <div>Hello World</div>
-  <input placeholder="Enter your name" />
-  <input :placeholder="'Enter your name'" />
-  <div>{{ 'Hello World' }}</div>
-</template>
-```
+## 📝 示例
 
-### 4. Automatic Transformation
-
-The plugin will automatically transform your code:
-
-```vue
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
-const title = ref(t('message.hello'))
-const options = [t('message.welcome'), t('message.hello')]
-</script>
-
-<template>
-  <div>{{ $t('message.hello') }}</div>
-  <input :placeholder="$t('message.placeholder')" />
-  <input :placeholder="$t('message.placeholder')" />
-  <div>{{ $t('message.hello') }}</div>
-</template>
-```
-
-## ⚙️ Configuration
-
-### Plugin Options
-
-```typescript
-interface AutoI18nOptions {
-  enableScript?: boolean        // Enable script transformation (default: true)
-  enableTemplate?: boolean      // Enable template transformation (default: true)
-  exclude?: (string | RegExp)[] // Exclude files by path or pattern
-  customMatcher?: (text: string) => string | false // Custom match function
-  keyGenerator?: (text: string) => string // Custom key generator
-  debug?: boolean               // Enable debug logging (default: false)
-}
-```
-
-### Configuration Examples
-
-#### Basic Configuration
-
-```typescript
-import autoI18n from 'vite-plugin-vue3-auto-i18n'
-
-export default defineConfig({
-  plugins: [
-    autoI18n(locale, {
-      enableScript: true,
-      enableTemplate: true,
-      debug: false
-    })
-  ]
-})
-```
-
-#### Advanced Configuration
-
-```typescript
-import autoI18n from 'vite-plugin-vue3-auto-i18n'
-
-export default defineConfig({
-  plugins: [
-    autoI18n(locale, {
-      // Custom key generator
-      keyGenerator: (text) => `auto.${text.replace(/\s+/g, '_')}`,
-      
-      // Custom matcher (higher priority than locale matching)
-      customMatcher: (text) => {
-        if (text === 'Hello World') return 'custom.hello'
-        return false
-      },
-      
-      // Exclude specific files
-      exclude: [
-        'node_modules',
-        /\.test\.vue$/,
-        'src/components/legacy'
-      ],
-      
-      // Enable debug mode
-      debug: true
-    })
-  ]
-})
-```
-
-## 🔧 Usage Examples
-
-### Script Transformations
-
+### 源文件 src/Hello.vue
 ```vue
 <script setup>
-// Before transformation
-const message = ref('Hello World')
-const greeting = 'Welcome'
-const items = ['Hello World', 'Welcome']
-const config = { title: 'Hello World', subtitle: 'Welcome' }
-
-// After transformation
-const message = ref(t('message.hello'))
-const greeting = computed(() => t('message.welcome'))
-const items = [t('message.hello'), t('message.welcome')]
-const config = { title: t('message.hello'), subtitle: t('message.welcome') }
+const arr = ['hello world', 'hi', 'notMatch']
+const obj = { a: 'hello world', b: 'hi', c: 'notMatch' }
 </script>
-```
-
-### Template Transformations
-
-```vue
 <template>
-  <!-- Before transformation -->
-  <div>Hello World</div>
-  <input placeholder="Enter your name" />
-  <input :placeholder="'Enter your name'" />
-  <div>{{ 'Hello World' }}</div>
-  
-  <!-- After transformation -->
-  <div>{{ $t('message.hello') }}</div>
-  <input :placeholder="$t('message.placeholder')" />
-  <input :placeholder="$t('message.placeholder')" />
-  <div>{{ $t('message.hello') }}</div>
+  <input placeholder="hello world" />
+  <div>{{ 'hi' }}</div>
+  <div>{{ obj.a }}</div>
 </template>
 ```
 
-## 🛡️ Error Handling
-
-The plugin provides comprehensive error handling with friendly messages:
-
-### Template Syntax Errors
-
-```bash
-[auto-i18n] template parse error in Component.vue: Element is missing end tag.
+### 转换后 i18n_out/Hello.vue
+```vue
+<script setup>
+const arr = [$t('message.hello'), $t('message.hi'), 'notMatch']
+const obj = {
+  a: $t('message.hello'),
+  b: $t('message.hi'),
+  c: 'notMatch'
+}
+</script>
+<template>
+  <input :placeholder="$t('message.hello')" />
+  <div>{{ $t('message.hi') }}</div>
+  <div>{{ obj.a }}</div>
+</template>
 ```
 
-### Script Syntax Errors
+---
+
+## 🛡️ 错误处理
+
+- **模板语法错误**：详细报错并指明缺失标签等问题
+- **脚本语法错误**：定位到具体 token 错误
+- **配置错误**：缺少 scanDir、outDir、exts、locale 等会直接报错
+
+---
+
+## 🧪 测试
+
+本项目内置 Vitest 测试，覆盖所有转换逻辑和异常场景，确保每次发布都稳定可靠。
 
 ```bash
-[auto-i18n] script parse error in Component.vue: Unexpected token
+pnpm exec vitest run
 ```
 
-### Configuration Errors
-
-```bash
-[auto-i18n] invalid locale configuration: locale must be a non-empty object
-```
-
-### Warnings
-
-```bash
-[auto-i18n] warning: No template found in Component.vue
-[auto-i18n] warning: No script found in Component.vue
-```
-
-### Debug Information
-
-```bash
-[auto-i18n] transformed: Component.vue
-```
-
-## ❌ Limitations
-
-The following scenarios are **not supported**:
-
-- **Complex Expressions**: 
-  ```vue
-  {{ 'Hello' + name }}           <!-- ❌ -->
-  :placeholder="foo ? 'Hello' : 'Hi'"  <!-- ❌ -->
-  ```
-
-- **Slot Content**: 
-  ```vue
-  <template #header>Hello World</template>  <!-- ❌ -->
-  ```
-
-- **Directive Arguments**: 
-  ```vue
-  v-tooltip="'Hello World'"      <!-- ❌ -->
-  v-on:click="'Hi'"              <!-- ❌ -->
-  ```
-
-- **Component Names & Props**: 
-  ```vue
-  <MyComponent title="Hello" />  <!-- ❌ -->
-  ```
-
-- **脚本和模板中都可以直接使用 `$t('xxx')`，无需手动引入 useI18n 或 t**
-- **无需在 `<script setup>` 中手动引入 useI18n 或 t，直接用 $t('xxx') 即可**
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
 
 ## 📄 License
 
-[MIT](./LICENSE) License © 2022 [exwer](https://github.com/exwer)
+[MIT](./LICENSE)
+
+---
+
+## 🙋 常见问题
+
+- **Q: 支持哪些文件类型？**
+  目前仅支持 .vue 文件，后续可扩展。
+- **Q: 输出目录会覆盖原文件吗？**
+  不会，所有转换结果输出到 outDir，源文件不变。
+- **Q: 支持自定义 key 生成或匹配吗？**
+  支持，可在 locale 配置和后续扩展中自定义。
+
+---
+
+如有更多问题或建议，欢迎在 [GitHub Issues](https://github.com/exwer/i18ncraft/issues) 反馈！
